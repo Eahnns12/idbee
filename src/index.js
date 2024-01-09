@@ -259,10 +259,14 @@ class IDBee {
           });
 
           // Create index for object store
-          indexes.forEach(({ name, keyPath = name, unique = false }) => {
-            objectStore.createIndex(name, keyPath, { unique });
-            this.#log(`index: "${name}" created with unique: ${unique}`);
-          });
+          indexes.forEach(
+            ({ name, keyPath = name, unique = false, multiEntry = false }) => {
+              objectStore.createIndex(name, keyPath, { unique, multiEntry });
+              this.#log(
+                `index: "${name}" created with unique: ${unique} & multiEntry: ${multiEntry}`
+              );
+            }
+          );
         });
 
         callbacks.onupgradeneeded?.(event);
@@ -422,41 +426,81 @@ class Operations {
   }
 
   get(store, data) {
-    const availableIndexes = Array.from(store.indexNames);
+    const getAll = new OperationChainHandler((store, data) => {
+      if (!isExpectedType(data, "Undefined")) {
+        return false;
+      }
 
-    if (isExpectedType(data, "Undefined")) {
       return this.#handleRequest(store.getAll());
-    } else if (
-      isExpectedType(data, "Number") ||
-      isExpectedType(data, "String")
-    ) {
+    });
+
+    const getAllByIndex = new OperationChainHandler((store, data) => {
+      if (!isExpectedType(data, "Object")) {
+        return false;
+      }
+
+      const { index, value } = data;
+
+      if (
+        isExpectedType(index, "Undefined") ||
+        !isExpectedType(value, "Undefined")
+      ) {
+        return false;
+      }
+
+      return this.#handleRequest(store.index(index).getAll());
+    });
+
+    const getAllByIndexValue = new OperationChainHandler((store, data) => {
+      if (!isExpectedType(data, "Object")) {
+        return false;
+      }
+
+      const { index, value } = data;
+
+      if (
+        isExpectedType(index, "Undefined") ||
+        isExpectedType(value, "Undefined")
+      ) {
+        return false;
+      }
+
+      return new Promise((resolve, reject) => {
+        const request = store.index(index).openCursor(IDBKeyRange.only(value));
+        const result = [];
+
+        request.onsuccess = (event) => {
+          const cursor = event.target.result;
+
+          if (cursor) {
+            result.push(cursor.value);
+            cursor.continue();
+          } else {
+            resolve(result);
+          }
+        };
+
+        request.onerror = (event) => {
+          reject(event.target.error);
+        };
+      });
+    });
+
+    const getById = new OperationChainHandler((store, data) => {
+      if (isExpectedType(data, "Object")) {
+        return false;
+      }
+
       return this.#handleRequest(store.get(data));
-    } else if (isExpectedType(data, "Object")) {
-      if (!availableIndexes.length) {
-        throw new Error("No indexes available");
-      }
+    });
 
-      if (Object.keys(data).length !== 1) {
-        throw new Error("Object must have only one property");
-      }
+    getAll.next(getAllByIndex);
+    getAllByIndex.next(getAllByIndexValue);
+    getAllByIndexValue.next(getById);
 
-      const queryKey = Object.keys(data)[0];
-      const queryValue = data[queryKey];
+    const result = getAll.run(store, data);
 
-      if (!["index", ...availableIndexes].some((key) => key === queryKey)) {
-        throw new Error(
-          "Object key must be 'index' or the index name that initialized"
-        );
-      }
-
-      if (queryKey === "index") {
-        return this.#handleRequest(store.index(queryValue).getAll());
-      }
-
-      if (availableIndexes.some((key) => key === queryKey)) {
-        return this.#handleRequest(store.index(queryKey).get(queryValue));
-      }
-    }
+    return result === false ? undefined : result;
   }
 
   put(store, data) {
@@ -480,6 +524,29 @@ class Operations {
         resolve(event.target.result);
       };
     });
+  }
+}
+
+class OperationChainHandler {
+  constructor(currentRequest) {
+    this.currentRequest = currentRequest;
+    this.nextRequest = null;
+  }
+
+  next(handler) {
+    this.nextRequest = handler;
+  }
+
+  run(store, data) {
+    const result = this.currentRequest(store, data);
+
+    if (result) {
+      return result;
+    } else if (this.nextRequest) {
+      return this.nextRequest.run(store, data);
+    } else {
+      return false;
+    }
   }
 }
 

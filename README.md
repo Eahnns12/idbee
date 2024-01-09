@@ -1,6 +1,7 @@
-# <span style="color: #985b10 ">ID</span><span style="color: #f6e000">Bee</span>
+# IDBee
 
 :honeybee: :honeybee: :honeybee: :honeybee: :honeybee:
+A lightweight Promise-Based Wrapper to simplify the use of JavaScript IndexedDB
 
 <!-- ## Installation
 
