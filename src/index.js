@@ -1,4 +1,4 @@
-import { isExpectedType } from "./utils.js";
+import { isType } from "./utils.js";
 
 /**
  * IDBee class to handle IndexedDB operations with an improved API.
@@ -48,7 +48,7 @@ class IDBee {
       );
     }
 
-    if (!isExpectedType(name, "String")) {
+    if (!isType(name, "String")) {
       throw new TypeError("db name must be a string");
     }
 
@@ -76,7 +76,7 @@ class IDBee {
       );
     }
 
-    if (!isExpectedType(version, "Number")) {
+    if (!isType(version, "Number")) {
       throw new TypeError("db version must be a number");
     }
 
@@ -104,7 +104,7 @@ class IDBee {
       );
     }
 
-    if (!isExpectedType(stores, "Array")) {
+    if (!isType(stores, "Array")) {
       throw new TypeError("db stores must be a array");
     }
 
@@ -133,7 +133,7 @@ class IDBee {
       throw new Error("Cannot open the database: it is already opened.");
     }
 
-    if (!isExpectedType(callbacks, "Object")) {
+    if (!isType(callbacks, "Object")) {
       throw new TypeError(
         "The argument for the 'open' method must be an object containing callbacks."
       );
@@ -151,13 +151,13 @@ class IDBee {
         throw new Error(`Invalid callback name: ${callback}`);
       }
 
-      if (!isExpectedType(func, "Function")) {
+      if (!isType(func, "Function")) {
         throw new TypeError(`callback must be a function`);
       }
     });
 
     return new Promise((resolve, reject) => {
-      if (isExpectedType(this.dbName, "Undefined")) {
+      if (isType(this.dbName, "Undefined")) {
         this.#log(`No valid name provided for database`);
         this.#log(`Database will init with name "idb"`);
         this.dbName = "idb";
@@ -198,10 +198,7 @@ class IDBee {
             this.#log(`objectStore: "${storeName}" deleted`);
           });
 
-        if (
-          !isExpectedType(this.#dbStores, "Array") ||
-          !this.#dbStores?.length
-        ) {
+        if (!isType(this.#dbStores, "Array") || !this.#dbStores?.length) {
           this.#log(
             `No valid store definitions provided for database "${this.dbName}".`
           );
@@ -216,13 +213,13 @@ class IDBee {
         this.#dbStores.forEach((store) => {
           const { name, options = {}, indexes = [] } = store;
 
-          if (!isExpectedType(options, "Object")) {
+          if (!isType(options, "Object")) {
             throw new Error(
               `Store "${name}" has invalid options. Expected options to be an object.`
             );
           }
 
-          if (!isExpectedType(indexes, "Array")) {
+          if (!isType(indexes, "Array")) {
             throw new Error(
               `Store "${name}" has invalid indexes definition. Expected indexes to be an array.`
             );
@@ -302,7 +299,7 @@ class IDBee {
       let [selectedStoreNames, callback] =
         typeof args[0] === "function" ? [null, args[0]] : args;
 
-      if (callback && !isExpectedType(callback, "AsyncFunction")) {
+      if (callback && !isType(callback, "AsyncFunction")) {
         throw new TypeError(
           "Transaction callback must be an asynchronous function."
         );
@@ -313,10 +310,21 @@ class IDBee {
 
       const transaction = this.db.transaction(storeNames, "readwrite");
 
-      const objectStores = new IDBeeCRUDBuilder(
-        transaction,
-        storeNames
-      ).build();
+      const objectStores = ((transaction, storeNames) => {
+        const stores = {};
+
+        for (const name of storeNames) {
+          const store = transaction.objectStore(name);
+          stores[name] = {
+            add: (data) => new Operations().add(store, data),
+            get: (data) => new Operations().get(store, data),
+            put: (data) => new Operations().put(store, data),
+            delete: (data) => new Operations().delete(store, data),
+          };
+        }
+
+        return stores;
+      })(transaction, storeNames);
 
       if (callback) {
         callback(objectStores)
@@ -380,139 +388,501 @@ class IDBee {
   }
 }
 
-/**
- * Builder class for CRUD operations.
- * @private
- */
-class IDBeeCRUDBuilder {
-  /**
-   * @param {IDBTransaction} transaction - The transaction object.
-   * @param {string[]} storeNames - Object store names.
-   */
-  constructor(transaction, storeNames) {
-    this.transaction = transaction;
-    this.storeNames = storeNames;
-    this.objectStores = {};
-  }
-
-  build() {
-    for (const name of this.storeNames) {
-      const store = this.transaction.objectStore(name);
-      this.objectStores[name] = this.buildObjectStore(store);
-    }
-
-    return this.objectStores;
-  }
-
-  buildObjectStore(store) {
-    return {
-      add: (data) => new Operations().add(store, data),
-      get: (data) => new Operations().get(store, data),
-      put: (data) => new Operations().put(store, data),
-      delete: (data) => new Operations().delete(store, data),
-    };
-  }
-}
-
-/**
- * Class that performs CRUD operations.
- * @private
- */
 class Operations {
   constructor() {}
 
-  add(store, data) {
-    return this.#handleRequest(store.add(data));
+  add(store, args) {
+    const { key, value } = args;
+    return this.#handleRequest(store.add(value, key));
   }
 
-  get(store, data) {
-    const getAll = new OperationChainHandler((store, data) => {
-      if (!isExpectedType(data, "Undefined")) {
-        return false;
-      }
-
-      return this.#handleRequest(store.getAll());
-    });
-
-    const getAllByIndex = new OperationChainHandler((store, data) => {
-      if (!isExpectedType(data, "Object")) {
-        return false;
-      }
-
-      const { index, value } = data;
+  get(store, args = {}) {
+    const get = new OperationChainHandler((store, args) => {
+      const { key, index, where } = args;
 
       if (
-        isExpectedType(index, "Undefined") ||
-        !isExpectedType(value, "Undefined")
-      ) {
-        return false;
-      }
-
-      return this.#handleRequest(store.index(index).getAll());
-    });
-
-    const getAllByIndexValue = new OperationChainHandler((store, data) => {
-      if (!isExpectedType(data, "Object")) {
-        return false;
-      }
-
-      const { index, value } = data;
-
-      if (
-        isExpectedType(index, "Undefined") ||
-        isExpectedType(value, "Undefined")
+        isType(key, "Undefined") ||
+        !isType(index, "Undefined") ||
+        !isType(where, "Undefined")
       ) {
         return false;
       }
 
       return new Promise((resolve, reject) => {
-        const request = store.index(index).openCursor(IDBKeyRange.only(value));
+        const request = store.get(key);
+
+        request.onerror = (event) => {
+          reject(event.target.error);
+        };
+
+        request.onsuccess = (event) => {
+          resolve(event.target.result);
+        };
+      });
+    });
+
+    const getAll = new OperationChainHandler((store, args) => {
+      const { key, index, where, query, count } = args;
+
+      if (
+        !isType(key, "Undefined") ||
+        !isType(index, "Undefined") ||
+        !isType(where, "Undefined")
+      ) {
+        return false;
+      }
+
+      return new Promise((resolve, reject) => {
+        const request = store.getAll(this.#createRange(query), count);
+
+        request.onerror = (event) => {
+          reject(event.target.error);
+        };
+
+        request.onsuccess = (event) => {
+          resolve(event.target.result);
+        };
+      });
+    });
+
+    const indexGet = new OperationChainHandler((store, args) => {
+      const { key, index, where } = args;
+
+      if (
+        isType(key, "Undefined") ||
+        isType(index, "Undefined") ||
+        !isType(where, "Undefined")
+      ) {
+        return false;
+      }
+
+      return new Promise((resolve, reject) => {
+        const request = store.index(index).get(key);
+
+        request.onerror = (event) => {
+          reject(event.target.error);
+        };
+
+        request.onsuccess = (event) => {
+          resolve(event.target.result);
+        };
+      });
+    });
+
+    const indexGetAll = new OperationChainHandler((store, args) => {
+      const { key, index, where, query, count } = args;
+
+      if (
+        !isType(key, "Undefined") ||
+        isType(index, "Undefined") ||
+        !isType(where, "Undefined")
+      ) {
+        return false;
+      }
+
+      return new Promise((resolve, reject) => {
+        const request = store
+          .index(index)
+          .getAll(this.#createRange(query), count);
+
+        request.onerror = (event) => {
+          reject(event.target.error);
+        };
+
+        request.onsuccess = (event) => {
+          resolve(event.target.result);
+        };
+      });
+    });
+
+    const cursorGet = new OperationChainHandler((store, args) => {
+      const { key, index, where, query, direction } = args;
+
+      if (
+        !isType(key, "Undefined") ||
+        !isType(index, "Undefined") ||
+        isType(where, "Undefined")
+      ) {
+        return false;
+      }
+
+      if (!isType(where, "Function")) {
+        throw new TypeError(`where must be a function`);
+      }
+
+      return new Promise((resolve, reject) => {
+        const request = store.openCursor(this.#createRange(query), direction);
+
         const result = [];
+
+        request.onerror = (event) => {
+          reject(event.target.error);
+        };
 
         request.onsuccess = (event) => {
           const cursor = event.target.result;
 
           if (cursor) {
-            result.push(cursor.value);
+            const callbackResult = where(cursor.value);
+
+            if (callbackResult) {
+              result.push(callbackResult);
+            }
+
             cursor.continue();
           } else {
             resolve(result);
           }
         };
+      });
+    });
+
+    const indexCursorGet = new OperationChainHandler((store, args) => {
+      const { key, index, where, query, direction } = args;
+
+      if (
+        !isType(key, "Undefined") ||
+        isType(index, "Undefined") ||
+        isType(where, "Undefined")
+      ) {
+        return false;
+      }
+
+      if (!isType(where, "Function")) {
+        throw new TypeError(`where must be a function`);
+      }
+
+      return new Promise((resolve, reject) => {
+        const request = store
+          .index(index)
+          .openCursor(this.#createRange(query), direction);
+
+        const result = [];
 
         request.onerror = (event) => {
           reject(event.target.error);
         };
+
+        request.onsuccess = (event) => {
+          const cursor = event.target.result;
+
+          if (cursor) {
+            const callbackResult = where(cursor.value);
+
+            if (callbackResult) {
+              result.push(callbackResult);
+            }
+
+            cursor.continue();
+          } else {
+            resolve(result);
+          }
+        };
       });
     });
 
-    const getById = new OperationChainHandler((store, data) => {
-      if (isExpectedType(data, "Object")) {
-        return false;
-      }
+    get.next(getAll);
+    getAll.next(indexGet);
+    indexGet.next(indexGetAll);
+    indexGetAll.next(cursorGet);
+    cursorGet.next(indexCursorGet);
 
-      return this.#handleRequest(store.get(data));
-    });
-
-    getAll.next(getAllByIndex);
-    getAllByIndex.next(getAllByIndexValue);
-    getAllByIndexValue.next(getById);
-
-    const result = getAll.run(store, data);
+    const result = get.run(store, args);
 
     return result === false ? undefined : result;
   }
 
-  put(store, data) {
-    return this.#handleRequest(store.put(data));
+  put(store, args = {}) {
+    const put = new OperationChainHandler((store, args) => {
+      const { key, value, where } = args;
+
+      if (isType(value, "Undefined") || !isType(where, "Undefined")) {
+        return false;
+      }
+
+      return new Promise((resolve, reject) => {
+        const request = store.put(value, key);
+
+        request.onerror = (event) => {
+          reject(event.target.error);
+        };
+
+        request.onsuccess = (event) => {
+          resolve(event.target.result);
+        };
+      });
+    });
+
+    const cursorUpdate = new OperationChainHandler((store, args) => {
+      const { value, index, where, query, direction } = args;
+
+      if (
+        !isType(value, "Undefined") ||
+        !isType(index, "Undefined") ||
+        isType(where, "Undefined")
+      ) {
+        return false;
+      }
+
+      if (!isType(where, "Function")) {
+        throw new TypeError(`where must be a function`);
+      }
+
+      return new Promise((resolve, reject) => {
+        const request = store.openCursor(this.#createRange(query), direction);
+
+        const result = [];
+
+        request.onerror = (event) => {
+          reject(event.target.error);
+        };
+
+        request.onsuccess = (event) => {
+          const cursor = event.target.result;
+
+          if (cursor) {
+            const callbackResult = where(cursor.value);
+
+            if (callbackResult) {
+              const request = cursor.update(callbackResult);
+
+              request.onerror = (event) => {
+                reject(event.target.error);
+              };
+
+              request.onsuccess = () => {
+                result.push(request.result);
+              };
+            }
+
+            cursor.continue();
+          } else {
+            resolve(result);
+          }
+        };
+      });
+    });
+
+    const indexCursorUpdate = new OperationChainHandler((store, args) => {
+      const { index, value, where, query, direction } = args;
+
+      if (
+        !isType(value, "Undefined") ||
+        isType(index, "Undefined") ||
+        isType(where, "Undefined")
+      ) {
+        return false;
+      }
+
+      if (!isType(where, "Function")) {
+        throw new TypeError(`where must be a function`);
+      }
+
+      return new Promise((resolve, reject) => {
+        const request = store
+          .index(index)
+          .openCursor(this.#createRange(query), direction);
+
+        const result = [];
+
+        request.onerror = (event) => {
+          reject(event.target.error);
+        };
+
+        request.onsuccess = (event) => {
+          const cursor = event.target.result;
+
+          if (cursor) {
+            const callbackResult = where(cursor.value);
+
+            if (callbackResult) {
+              const request = cursor.update(callbackResult);
+
+              request.onerror = (event) => {
+                reject(event.target.error);
+              };
+
+              request.onsuccess = () => {
+                result.push(request.result);
+              };
+            }
+
+            cursor.continue();
+          } else {
+            resolve(result);
+          }
+        };
+      });
+    });
+
+    put.next(cursorUpdate);
+    cursorUpdate.next(indexCursorUpdate);
+
+    const result = put.run(store, args);
+
+    return result === false ? undefined : result;
   }
 
-  delete(store, data) {
-    if (isExpectedType(data, "Undefined")) {
-      return this.#handleRequest(store.clear());
-    }
+  delete(store, args = {}) {
+    const remove = new OperationChainHandler((store, args) => {
+      const { key, index, where } = args;
 
-    return this.#handleRequest(store.delete(data));
+      if (
+        isType(key, "Undefined") ||
+        !isType(index, "Undefined") ||
+        !isType(where, "Undefined")
+      ) {
+        return false;
+      }
+
+      return new Promise((resolve, reject) => {
+        const request = store.delete(key);
+
+        request.onerror = (event) => {
+          reject(event.target.error);
+        };
+
+        request.onsuccess = (event) => {
+          resolve(event.target.result);
+        };
+      });
+    });
+
+    const cursorDelete = new OperationChainHandler((store, args) => {
+      const { value, index, where, query, direction } = args;
+
+      if (
+        !isType(value, "Undefined") ||
+        !isType(index, "Undefined") ||
+        isType(where, "Undefined")
+      ) {
+        return false;
+      }
+
+      if (!isType(where, "Function")) {
+        throw new TypeError(`where must be a function`);
+      }
+
+      return new Promise((resolve, reject) => {
+        const request = store.openCursor(this.#createRange(query), direction);
+
+        const result = [];
+
+        request.onerror = (event) => {
+          reject(event.target.error);
+        };
+
+        request.onsuccess = (event) => {
+          const cursor = event.target.result;
+
+          if (cursor) {
+            const callbackResult = where(cursor.value);
+
+            if (callbackResult === true) {
+              const request = cursor.delete();
+
+              console.log(request);
+
+              request.onerror = (event) => {
+                reject(event.target.error);
+              };
+
+              request.onsuccess = () => {
+                result.push(request.source.key);
+              };
+            }
+
+            cursor.continue();
+          } else {
+            resolve(result);
+          }
+        };
+      });
+    });
+
+    const indexCursorDelete = new OperationChainHandler((store, args) => {
+      const { index, value, where, query, direction } = args;
+
+      if (
+        !isType(value, "Undefined") ||
+        isType(index, "Undefined") ||
+        isType(where, "Undefined")
+      ) {
+        return false;
+      }
+
+      if (!isType(where, "Function")) {
+        throw new TypeError(`where must be a function`);
+      }
+
+      return new Promise((resolve, reject) => {
+        const request = store
+          .index(index)
+          .openCursor(this.#createRange(query), direction);
+
+        const result = [];
+
+        request.onerror = (event) => {
+          reject(event.target.error);
+        };
+
+        request.onsuccess = (event) => {
+          const cursor = event.target.result;
+
+          if (cursor) {
+            const callbackResult = where(cursor.value);
+
+            if (callbackResult === true) {
+              const request = cursor.delete();
+
+              request.onerror = (event) => {
+                reject(event.target.error);
+              };
+
+              request.onsuccess = () => {
+                result.push(request.source.key);
+              };
+            }
+
+            cursor.continue();
+          } else {
+            resolve(result);
+          }
+        };
+      });
+    });
+
+    const clear = new OperationChainHandler((store, args) => {
+      const { key, index, where } = args;
+
+      if (
+        !isType(key, "Undefined") ||
+        !isType(index, "Undefined") ||
+        !isType(where, "Undefined")
+      ) {
+        return false;
+      }
+
+      return new Promise((resolve, reject) => {
+        const request = store.clear();
+
+        request.onerror = (event) => {
+          reject(event.target.error);
+        };
+
+        request.onsuccess = (event) => {
+          resolve(event.target.result);
+        };
+      });
+    });
+
+    remove.next(cursorDelete);
+    cursorDelete.next(indexCursorDelete);
+    indexCursorDelete.next(clear);
+
+    const result = remove.run(store, args);
+
+    return result === false ? undefined : result;
   }
 
   #handleRequest(request) {
@@ -524,6 +894,26 @@ class Operations {
         resolve(event.target.result);
       };
     });
+  }
+
+  #createRange(query = {}) {
+    const { start, end, only } = query;
+
+    if (!isType(only, "Undefined")) {
+      return IDBKeyRange.only(only);
+    }
+
+    if (!isType(start, "Undefined") && !isType(end, "Undefined")) {
+      return IDBKeyRange.bound(start, end);
+    }
+
+    if (!isType(start, "Undefined")) {
+      return IDBKeyRange.lowerBound(start);
+    }
+
+    if (!isType(end, "Undefined")) {
+      return IDBKeyRange.upperBound(end);
+    }
   }
 }
 

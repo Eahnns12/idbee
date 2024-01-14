@@ -4,10 +4,10 @@
  * @param {string} expected - The expected type as a string.
  * @returns {boolean} - True if the value matches the expected type, false otherwise.
  */
-function isExpectedType(value, expected) {
+function isType(value, expected) {
   const type = Object.prototype.toString.call(value);
   const result = type === "[object " + expected + "]";
   return result;
 }
 
-export { isExpectedType };
+export { isType };

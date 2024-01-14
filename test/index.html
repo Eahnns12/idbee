@@ -195,11 +195,12 @@
       const dummy = new IDBee({ dev: true });
 
       await dummy
-        .version(3)
+        .version(1)
         .name("dummy")
         .stores([
           {
             name: "todos",
+            options: { keyPath: null, autoIncrement: true },
             indexes: [
               { name: "todo" },
               { name: "userId" },
@@ -210,11 +211,17 @@
         .open();
 
       await dummy.transaction(async ({ todos }) => {
-        const todo = await todos.get(1);
+        // for (const iterator of todoList) {
+        //   await todos.add({ value: iterator });
+        // }
 
-        await todos.put({ ...todo, date: new Date() });
+        const result = await todos.get({
+          query: { start: 20 },
+          direction: "prev",
+          where: (value) => (!value.completed ? value : null),
+        });
 
-        console.log(todo);
+        console.log(result);
       });
     </script>
   </body>
