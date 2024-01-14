@@ -1,9 +1,5 @@
 import { isType } from "./utils.js";
 
-/**
- * IDBee class to handle IndexedDB operations with an improved API.
- * @class
- */
 class IDBee {
   #dbName;
   #dbVersion;
@@ -13,13 +9,7 @@ class IDBee {
   #isVersionSet;
   #isStoresSet;
 
-  /**
-   * Constructor for creating an IDBee instance.
-   * @param {Object} [config] - Configuration object.
-   * @param {boolean} [config.dev=false] - Whether enable debug logs.
-   */
-  constructor({ dev = false } = {}) {
-    this.dev = dev;
+  constructor() {
     this.idb = window.indexedDB;
     this.db = null;
     this.#dbName;
@@ -34,8 +24,7 @@ class IDBee {
   /**
    * Sets the database name.
    * @param {string} name - The name of the database.
-   * @returns {IDBee} Current instance for chaining.
-   * @throws {Error} If database already opened or name already set.
+   * @returns {IDBee} The IDBee instance for chaining.
    */
   name(name) {
     if (this.#isOpened) {
@@ -52,8 +41,7 @@ class IDBee {
       throw new TypeError("db name must be a string");
     }
 
-    this.#log(`Database name set from "${this.dbName}" to "${name}".`);
-    this.dbName = name;
+    this.#dbName = name;
     this.#isNameSet = true;
 
     return this;
@@ -61,9 +49,8 @@ class IDBee {
 
   /**
    * Sets the database version.
-   * @param {number} version - The version number.
-   * @returns {IDBee} Current instance for chaining.
-   * @throws {Error} If database already opened or version already set.
+   * @param {number} version - The version of the database.
+   * @returns {IDBee} The IDBee instance for chaining.
    */
   version(version) {
     if (this.#isOpened) {
@@ -80,7 +67,6 @@ class IDBee {
       throw new TypeError("db version must be a number");
     }
 
-    this.#log(`Database version updated to ${version}.`);
     this.#dbVersion = version;
     this.#isVersionSet = true;
 
@@ -88,10 +74,17 @@ class IDBee {
   }
 
   /**
-   * Defines the object stores.
-   * @param {Object[]} stores - Object stores configuration.
-   * @returns {IDBee} Current instance for chaining.
-   * @throws {Error} If database already opened or stores already defined.
+   * Sets the object stores for the database.
+   * @param {object[]} stores - An array of object store specifications.
+   * @param {string} stores[].name
+   * @param {object} stores[].options
+   * @param {string} stores[].options.keyPath
+   * @param {boolean} stores[].options.autoIncrement
+   * @param {object[]} stores[].indexes
+   * @param {string} stores[].indexes[].name
+   * @param {boolean} stores[].indexes[].unique
+   * @param {boolean} stores[].indexes[].multiEntry
+   * @returns {IDBee} The IDBee instance for chaining.
    */
   stores(stores) {
     if (this.#isOpened) {
@@ -108,14 +101,6 @@ class IDBee {
       throw new TypeError("db stores must be a array");
     }
 
-    this.#log(
-      `Database store configuration updated to include: ${stores
-        .map((store) => store.name)
-        .join(", ")}.`
-    );
-
-    this.#log(`This will only apply when database init or version change.`);
-
     this.#dbStores = stores;
     this.#isStoresSet = true;
 
@@ -123,10 +108,13 @@ class IDBee {
   }
 
   /**
-   * Opens the connection to database.
-   * @param {Object} [callbacks] - Object containing event callbacks.
-   * @returns {Promise<IDBee>} Promise resolved with IDBee instance.
-   * @throws {Error} If database already opened.
+   * Opens the database connection.
+   * @param {object} [callbacks={}] - An object containing callback functions for the open operation.
+   * @param {function} [callbacks.onsuccess] - Called when opening the database is successful.
+   * @param {function} [callbacks.onerror] - Called when opening the database fails.
+   * @param {function} [callbacks.onupgradeneeded] - Called when the database is being upgraded.
+   * @param {function} [callbacks.onblocked] - Called when the open request is blocked.s
+   * @returns {Promise<IDBee>} A promise that resolves to the IDBee instance once the database is opened.
    */
   open(callbacks = {}) {
     if (this.#isOpened) {
@@ -157,35 +145,24 @@ class IDBee {
     });
 
     return new Promise((resolve, reject) => {
-      if (isType(this.dbName, "Undefined")) {
-        this.#log(`No valid name provided for database`);
-        this.#log(`Database will init with name "idb"`);
-        this.dbName = "idb";
+      if (isType(this.#dbName, "Undefined")) {
+        this.#dbName = "idb";
       }
 
-      const request = this.idb.open(this.dbName, this.#dbVersion);
+      const request = this.idb.open(this.#dbName, this.#dbVersion);
 
       request.onsuccess = (event) => {
-        this.#log(`${this.dbName} open successfully`);
-        this.#log(this.info);
-
         callbacks.onsuccess?.(event);
         this.db = event.target.result;
         resolve(this);
       };
 
       request.onerror = (event) => {
-        this.#log(
-          `${this.dbName} Failed to open database due to error: ${event.target.error.message}`
-        );
-
         callbacks.onerror?.(event);
         reject(event.target.error);
       };
 
       request.onupgradeneeded = (event) => {
-        this.#log(`${this.dbName} upgrade...`);
-
         const db = event.target.result;
         const existingStores = Array.from(db.objectStoreNames);
         const idealStores = this.#dbStores.map(({ name }) => name);
@@ -195,18 +172,10 @@ class IDBee {
           .filter((storeName) => !idealStores.includes(storeName))
           .forEach((storeName) => {
             db.deleteObjectStore(storeName);
-            this.#log(`objectStore: "${storeName}" deleted`);
           });
 
         if (!isType(this.#dbStores, "Array") || !this.#dbStores?.length) {
-          this.#log(
-            `No valid store definitions provided for database "${this.dbName}".`
-          );
-          this.#log(`This will create store "app" automayically`);
-
           this.#dbStores.push({ name: "app" });
-
-          //   throw new Error("No available store exists");
         }
 
         // Create or update stores
@@ -235,10 +204,6 @@ class IDBee {
               keyPath,
               autoIncrement,
             });
-
-            this.#log(
-              `objectStore: "${name}" created with keyPath: ${keyPath} & autoIncrement: ${autoIncrement}`
-            );
           } else {
             objectStore = event.target.transaction.objectStore(name);
           }
@@ -252,16 +217,12 @@ class IDBee {
           // Delete all remaining index
           Array.from(objectStore.indexNames).forEach((indexName) => {
             objectStore.deleteIndex(indexName);
-            this.#log(`index: "${indexName}" deleted`);
           });
 
           // Create index for object store
           indexes.forEach(
             ({ name, keyPath = name, unique = false, multiEntry = false }) => {
               objectStore.createIndex(name, keyPath, { unique, multiEntry });
-              this.#log(
-                `index: "${name}" created with unique: ${unique} & multiEntry: ${multiEntry}`
-              );
             }
           );
         });
@@ -279,16 +240,13 @@ class IDBee {
       throw new Error("The database connection is not open or already closed");
     }
 
-    this.#log(`${this.dbName} closed.`);
-
     this.db.close();
   }
 
   /**
-   * Performs a database transaction.
-   * @param {string[]} [storeNames] - Object store names to operate on in transaction.
-   * @param {Function} callback - Async transaction callback function.
-   * @returns {Promise} Promise resolved when transaction completes.
+   * Performs database operations within a transaction.
+   * @param {Array<string>|Function} args - The store names or the transaction callback.
+   * @returns {Promise<any>} A promise that resolves with the result of the transaction.
    */
   transaction(...args) {
     return new Promise((resolve, reject) => {
@@ -316,10 +274,46 @@ class IDBee {
         for (const name of storeNames) {
           const store = transaction.objectStore(name);
           stores[name] = {
-            add: (data) => new Operations().add(store, data),
-            get: (data) => new Operations().get(store, data),
-            put: (data) => new Operations().put(store, data),
-            delete: (data) => new Operations().delete(store, data),
+            /**
+             * Adds a record to the given object store.
+             * @param {object} options - The options for the add operation.
+             * @param {any} options.key
+             * @param {any} options.value
+             */
+            add: (options) => new Operations().add(store, options),
+            /**
+             * Gets records from the given object store.
+             * @param {object} options - The options for the add operation.
+             * @param {any} options.key
+             * @param {any} options.index
+             * @param {function} options.where
+             * @param {object} options.query
+             * @param {number} options.count
+             * @param {string} options.direction
+             */
+            get: (options) => new Operations().get(store, options),
+            /**
+             * Puts a record in the given object store, updating it if it already exists.
+             * @param {object} options - The options for the add operation.
+             * @param {any} options.key
+             * @param {any} options.index
+             * @param {any} options.value
+             * @param {function} options.where
+             * @param {object} options.query
+             * @param {string} options.direction
+             */
+            put: (options) => new Operations().put(store, options),
+            /**
+             * Deletes a record from the given object store.
+             * @param {IDBObjectStore} store - The object store to delete the record from.
+             * @param {object} options - The options for the add operation.
+             * @param {any} options.key
+             * @param {any} options.index
+             * @param {function} options.where
+             * @param {object} options.query
+             * @param {string} options.direction
+             */
+            delete: (options) => new Operations().delete(store, options),
           };
         }
 
@@ -341,7 +335,7 @@ class IDBee {
 
   /**
    * Deletes the database.
-   * @returns {Promise} Promise resolved when database is deleted.
+   * @returns {Promise<Event>} A promise that resolves to the event once the database is deleted.
    */
   delete() {
     if (!this.db) {
@@ -349,7 +343,7 @@ class IDBee {
     }
 
     return new Promise((resolve, reject) => {
-      const request = this.idb.deleteDatabase(this.dbName);
+      const request = this.idb.deleteDatabase(this.#dbName);
 
       request.onsuccess = (event) => {
         return resolve(event);
@@ -361,25 +355,9 @@ class IDBee {
     });
   }
 
-  /**
-   * Logs a message if the library is in development mode.
-   * @param {string} message - The message to log.
-   */
-  #log(message) {
-    if (this.dev) {
-      if (typeof message !== "string") {
-        console.log(`%c***`, "color: #FFAC9A;");
-        console.log(message);
-        console.log(`%c***`, "color: #FFAC9A;");
-      } else {
-        console.log(`%c[IDBee] ${message}`, "color: #FFAC9A;");
-      }
-    }
-  }
-
   get info() {
     const info = {
-      name: this.dbName,
+      name: this.#dbName,
       version: this.#dbVersion,
       stores: this.#dbStores,
     };
@@ -388,510 +366,208 @@ class IDBee {
   }
 }
 
+/**
+ * Operations class provides methods for IDBObjectStore operations like add, get, put, and delete.
+ */
 class Operations {
-  constructor() {}
+  /**
+   * Adds a record to the given object store.
+   * @param {IDBObjectStore} store - The object store to add the record to.
+   * @param {object} options - The options for the add operation.
+   * @returns {Promise<IDBValidKey>} A promise that resolves to the key of the added record.
+   */
+  add(store, options = {}) {
+    const { key, value } = options;
 
-  add(store, args) {
-    const { key, value } = args;
-    return this.#handleRequest(store.add(value, key));
-  }
-
-  get(store, args = {}) {
-    const get = new OperationChainHandler((store, args) => {
-      const { key, index, where } = args;
-
-      if (
-        isType(key, "Undefined") ||
-        !isType(index, "Undefined") ||
-        !isType(where, "Undefined")
-      ) {
-        return false;
-      }
-
-      return new Promise((resolve, reject) => {
-        const request = store.get(key);
-
-        request.onerror = (event) => {
-          reject(event.target.error);
-        };
-
-        request.onsuccess = (event) => {
-          resolve(event.target.result);
-        };
-      });
-    });
-
-    const getAll = new OperationChainHandler((store, args) => {
-      const { key, index, where, query, count } = args;
-
-      if (
-        !isType(key, "Undefined") ||
-        !isType(index, "Undefined") ||
-        !isType(where, "Undefined")
-      ) {
-        return false;
-      }
-
-      return new Promise((resolve, reject) => {
-        const request = store.getAll(this.#createRange(query), count);
-
-        request.onerror = (event) => {
-          reject(event.target.error);
-        };
-
-        request.onsuccess = (event) => {
-          resolve(event.target.result);
-        };
-      });
-    });
-
-    const indexGet = new OperationChainHandler((store, args) => {
-      const { key, index, where } = args;
-
-      if (
-        isType(key, "Undefined") ||
-        isType(index, "Undefined") ||
-        !isType(where, "Undefined")
-      ) {
-        return false;
-      }
-
-      return new Promise((resolve, reject) => {
-        const request = store.index(index).get(key);
-
-        request.onerror = (event) => {
-          reject(event.target.error);
-        };
-
-        request.onsuccess = (event) => {
-          resolve(event.target.result);
-        };
-      });
-    });
-
-    const indexGetAll = new OperationChainHandler((store, args) => {
-      const { key, index, where, query, count } = args;
-
-      if (
-        !isType(key, "Undefined") ||
-        isType(index, "Undefined") ||
-        !isType(where, "Undefined")
-      ) {
-        return false;
-      }
-
-      return new Promise((resolve, reject) => {
-        const request = store
-          .index(index)
-          .getAll(this.#createRange(query), count);
-
-        request.onerror = (event) => {
-          reject(event.target.error);
-        };
-
-        request.onsuccess = (event) => {
-          resolve(event.target.result);
-        };
-      });
-    });
-
-    const cursorGet = new OperationChainHandler((store, args) => {
-      const { key, index, where, query, direction } = args;
-
-      if (
-        !isType(key, "Undefined") ||
-        !isType(index, "Undefined") ||
-        isType(where, "Undefined")
-      ) {
-        return false;
-      }
-
-      if (!isType(where, "Function")) {
-        throw new TypeError(`where must be a function`);
-      }
-
-      return new Promise((resolve, reject) => {
-        const request = store.openCursor(this.#createRange(query), direction);
-
-        const result = [];
-
-        request.onerror = (event) => {
-          reject(event.target.error);
-        };
-
-        request.onsuccess = (event) => {
-          const cursor = event.target.result;
-
-          if (cursor) {
-            const callbackResult = where(cursor.value);
-
-            if (callbackResult) {
-              result.push(callbackResult);
-            }
-
-            cursor.continue();
-          } else {
-            resolve(result);
-          }
-        };
-      });
-    });
-
-    const indexCursorGet = new OperationChainHandler((store, args) => {
-      const { key, index, where, query, direction } = args;
-
-      if (
-        !isType(key, "Undefined") ||
-        isType(index, "Undefined") ||
-        isType(where, "Undefined")
-      ) {
-        return false;
-      }
-
-      if (!isType(where, "Function")) {
-        throw new TypeError(`where must be a function`);
-      }
-
-      return new Promise((resolve, reject) => {
-        const request = store
-          .index(index)
-          .openCursor(this.#createRange(query), direction);
-
-        const result = [];
-
-        request.onerror = (event) => {
-          reject(event.target.error);
-        };
-
-        request.onsuccess = (event) => {
-          const cursor = event.target.result;
-
-          if (cursor) {
-            const callbackResult = where(cursor.value);
-
-            if (callbackResult) {
-              result.push(callbackResult);
-            }
-
-            cursor.continue();
-          } else {
-            resolve(result);
-          }
-        };
-      });
-    });
-
-    get.next(getAll);
-    getAll.next(indexGet);
-    indexGet.next(indexGetAll);
-    indexGetAll.next(cursorGet);
-    cursorGet.next(indexCursorGet);
-
-    const result = get.run(store, args);
-
-    return result === false ? undefined : result;
-  }
-
-  put(store, args = {}) {
-    const put = new OperationChainHandler((store, args) => {
-      const { key, value, where } = args;
-
-      if (isType(value, "Undefined") || !isType(where, "Undefined")) {
-        return false;
-      }
-
-      return new Promise((resolve, reject) => {
-        const request = store.put(value, key);
-
-        request.onerror = (event) => {
-          reject(event.target.error);
-        };
-
-        request.onsuccess = (event) => {
-          resolve(event.target.result);
-        };
-      });
-    });
-
-    const cursorUpdate = new OperationChainHandler((store, args) => {
-      const { value, index, where, query, direction } = args;
-
-      if (
-        !isType(value, "Undefined") ||
-        !isType(index, "Undefined") ||
-        isType(where, "Undefined")
-      ) {
-        return false;
-      }
-
-      if (!isType(where, "Function")) {
-        throw new TypeError(`where must be a function`);
-      }
-
-      return new Promise((resolve, reject) => {
-        const request = store.openCursor(this.#createRange(query), direction);
-
-        const result = [];
-
-        request.onerror = (event) => {
-          reject(event.target.error);
-        };
-
-        request.onsuccess = (event) => {
-          const cursor = event.target.result;
-
-          if (cursor) {
-            const callbackResult = where(cursor.value);
-
-            if (callbackResult) {
-              const request = cursor.update(callbackResult);
-
-              request.onerror = (event) => {
-                reject(event.target.error);
-              };
-
-              request.onsuccess = () => {
-                result.push(request.result);
-              };
-            }
-
-            cursor.continue();
-          } else {
-            resolve(result);
-          }
-        };
-      });
-    });
-
-    const indexCursorUpdate = new OperationChainHandler((store, args) => {
-      const { index, value, where, query, direction } = args;
-
-      if (
-        !isType(value, "Undefined") ||
-        isType(index, "Undefined") ||
-        isType(where, "Undefined")
-      ) {
-        return false;
-      }
-
-      if (!isType(where, "Function")) {
-        throw new TypeError(`where must be a function`);
-      }
-
-      return new Promise((resolve, reject) => {
-        const request = store
-          .index(index)
-          .openCursor(this.#createRange(query), direction);
-
-        const result = [];
-
-        request.onerror = (event) => {
-          reject(event.target.error);
-        };
-
-        request.onsuccess = (event) => {
-          const cursor = event.target.result;
-
-          if (cursor) {
-            const callbackResult = where(cursor.value);
-
-            if (callbackResult) {
-              const request = cursor.update(callbackResult);
-
-              request.onerror = (event) => {
-                reject(event.target.error);
-              };
-
-              request.onsuccess = () => {
-                result.push(request.result);
-              };
-            }
-
-            cursor.continue();
-          } else {
-            resolve(result);
-          }
-        };
-      });
-    });
-
-    put.next(cursorUpdate);
-    cursorUpdate.next(indexCursorUpdate);
-
-    const result = put.run(store, args);
-
-    return result === false ? undefined : result;
-  }
-
-  delete(store, args = {}) {
-    const remove = new OperationChainHandler((store, args) => {
-      const { key, index, where } = args;
-
-      if (
-        isType(key, "Undefined") ||
-        !isType(index, "Undefined") ||
-        !isType(where, "Undefined")
-      ) {
-        return false;
-      }
-
-      return new Promise((resolve, reject) => {
-        const request = store.delete(key);
-
-        request.onerror = (event) => {
-          reject(event.target.error);
-        };
-
-        request.onsuccess = (event) => {
-          resolve(event.target.result);
-        };
-      });
-    });
-
-    const cursorDelete = new OperationChainHandler((store, args) => {
-      const { value, index, where, query, direction } = args;
-
-      if (
-        !isType(value, "Undefined") ||
-        !isType(index, "Undefined") ||
-        isType(where, "Undefined")
-      ) {
-        return false;
-      }
-
-      if (!isType(where, "Function")) {
-        throw new TypeError(`where must be a function`);
-      }
-
-      return new Promise((resolve, reject) => {
-        const request = store.openCursor(this.#createRange(query), direction);
-
-        const result = [];
-
-        request.onerror = (event) => {
-          reject(event.target.error);
-        };
-
-        request.onsuccess = (event) => {
-          const cursor = event.target.result;
-
-          if (cursor) {
-            const callbackResult = where(cursor.value);
-
-            if (callbackResult === true) {
-              const request = cursor.delete();
-
-              console.log(request);
-
-              request.onerror = (event) => {
-                reject(event.target.error);
-              };
-
-              request.onsuccess = () => {
-                result.push(request.source.key);
-              };
-            }
-
-            cursor.continue();
-          } else {
-            resolve(result);
-          }
-        };
-      });
-    });
-
-    const indexCursorDelete = new OperationChainHandler((store, args) => {
-      const { index, value, where, query, direction } = args;
-
-      if (
-        !isType(value, "Undefined") ||
-        isType(index, "Undefined") ||
-        isType(where, "Undefined")
-      ) {
-        return false;
-      }
-
-      if (!isType(where, "Function")) {
-        throw new TypeError(`where must be a function`);
-      }
-
-      return new Promise((resolve, reject) => {
-        const request = store
-          .index(index)
-          .openCursor(this.#createRange(query), direction);
-
-        const result = [];
-
-        request.onerror = (event) => {
-          reject(event.target.error);
-        };
-
-        request.onsuccess = (event) => {
-          const cursor = event.target.result;
-
-          if (cursor) {
-            const callbackResult = where(cursor.value);
-
-            if (callbackResult === true) {
-              const request = cursor.delete();
-
-              request.onerror = (event) => {
-                reject(event.target.error);
-              };
-
-              request.onsuccess = () => {
-                result.push(request.source.key);
-              };
-            }
-
-            cursor.continue();
-          } else {
-            resolve(result);
-          }
-        };
-      });
-    });
-
-    const clear = new OperationChainHandler((store, args) => {
-      const { key, index, where } = args;
-
-      if (
-        !isType(key, "Undefined") ||
-        !isType(index, "Undefined") ||
-        !isType(where, "Undefined")
-      ) {
-        return false;
-      }
-
-      return new Promise((resolve, reject) => {
-        const request = store.clear();
-
-        request.onerror = (event) => {
-          reject(event.target.error);
-        };
-
-        request.onsuccess = (event) => {
-          resolve(event.target.result);
-        };
-      });
-    });
-
-    remove.next(cursorDelete);
-    cursorDelete.next(indexCursorDelete);
-    indexCursorDelete.next(clear);
-
-    const result = remove.run(store, args);
-
-    return result === false ? undefined : result;
-  }
-
-  #handleRequest(request) {
     return new Promise((resolve, reject) => {
+      const request = store.add(value, key);
+
       request.onerror = (event) => {
         reject(event.target.error);
       };
+
       request.onsuccess = (event) => {
         resolve(event.target.result);
+      };
+    });
+  }
+
+  /**
+   * Gets records from the given object store.
+   * @param {IDBObjectStore} store - The object store to query.
+   * @param {object} options - The options for the get operation.
+   * @returns {Promise<any>} A promise that resolves to the requested records.
+   */
+  get(store, options = {}) {
+    const { key, index, where, query, count, direction } = options;
+
+    return new Promise((resolve, reject) => {
+      const action = index ? store.index(index) : store;
+
+      const request = ((key, where, query, count, direction) => {
+        if (!key && !where) {
+          return action.getAll(this.#createRange(query), count);
+        }
+
+        if (key) {
+          return action.get(key);
+        }
+
+        if (where) {
+          if (!isType(where, "Function")) {
+            throw new TypeError(`where must be a function`);
+          }
+
+          return action.openCursor(this.#createRange(query), direction);
+        }
+      })(key, where, query, count, direction);
+
+      const cursorContainer = where ? [] : null;
+
+      request.onerror = (event) => {
+        reject(event.target.error);
+      };
+
+      request.onsuccess = (event) => {
+        if (!where) {
+          return resolve(event.target.result);
+        }
+
+        const cursor = event.target.result;
+
+        if (cursor) {
+          const callbackResult = where(cursor.value);
+
+          if (callbackResult) {
+            cursorContainer.push(callbackResult);
+          }
+
+          cursor.continue();
+        } else {
+          return resolve(cursorContainer);
+        }
+      };
+    });
+  }
+
+  /**
+   * Puts a record in the given object store, updating it if it already exists.
+   * @param {IDBObjectStore} store - The object store to put the record in.
+   * @param {object} options - The options for the put operation.
+   * @returns {Promise<IDBValidKey>} A promise that resolves to the key of the put record.
+   */
+  put(store, options = {}) {
+    const { key, index, value, where, query, direction } = options;
+
+    return new Promise((resolve, reject) => {
+      const action = index ? store.index(index) : store;
+
+      const request = ((key, value, where, query, direction) => {
+        if (value && !where) {
+          return action.put(value, key);
+        }
+
+        if (where) {
+          if (!isType(where, "Function")) {
+            throw new TypeError(`where must be a function`);
+          }
+
+          return action.openCursor(this.#createRange(query), direction);
+        }
+      })(key, value, where, query, direction);
+
+      const cursorContainer = where ? [] : null;
+
+      request.onerror = (event) => {
+        reject(event.target.error);
+      };
+
+      request.onsuccess = (event) => {
+        if (!where) {
+          return resolve(event.target.result);
+        }
+
+        const cursor = event.target.result;
+
+        if (cursor) {
+          const callbackResult = where(cursor.value);
+
+          if (callbackResult) {
+            const request = cursor.update(callbackResult);
+
+            request.onerror = (event) => {
+              reject(event.target.error);
+            };
+
+            request.onsuccess = () => {
+              cursorContainer.push(request.result);
+            };
+          }
+
+          cursor.continue();
+        } else {
+          return resolve(cursorContainer);
+        }
+      };
+    });
+  }
+
+  /**
+   * Deletes a record from the given object store.
+   * @param {IDBObjectStore} store - The object store to delete the record from.
+   * @param {object} options - The options for the delete operation.
+   * @returns {Promise<void>} A promise that resolves when the record is deleted.
+   */
+  delete(store, options = {}) {
+    const { key, index, where, query, direction } = options;
+
+    return new Promise((resolve, reject) => {
+      const action = index ? store.index(index) : store;
+
+      const request = ((key, where, query, direction) => {
+        if (key) {
+          return action.delete(key);
+        }
+
+        if (where) {
+          if (!isType(where, "Function")) {
+            throw new TypeError(`where must be a function`);
+          }
+
+          return action.openCursor(this.#createRange(query), direction);
+        }
+
+        return action.clear();
+      })(key, where, query, direction);
+
+      request.onerror = (event) => {
+        reject(event.target.error);
+      };
+
+      request.onsuccess = (event) => {
+        if (!where) {
+          return resolve(event.target.result);
+        }
+
+        const cursor = event.target.result;
+
+        if (cursor) {
+          const callbackResult = where(cursor.value);
+
+          if (callbackResult === true) {
+            const request = cursor.delete();
+
+            request.onerror = (event) => {
+              reject(event.target.error);
+            };
+
+            request.onsuccess = () => {};
+          }
+
+          cursor.continue();
+        } else {
+          return resolve();
+        }
       };
     });
   }
@@ -913,29 +589,6 @@ class Operations {
 
     if (!isType(end, "Undefined")) {
       return IDBKeyRange.upperBound(end);
-    }
-  }
-}
-
-class OperationChainHandler {
-  constructor(currentRequest) {
-    this.currentRequest = currentRequest;
-    this.nextRequest = null;
-  }
-
-  next(handler) {
-    this.nextRequest = handler;
-  }
-
-  run(store, data) {
-    const result = this.currentRequest(store, data);
-
-    if (result) {
-      return result;
-    } else if (this.nextRequest) {
-      return this.nextRequest.run(store, data);
-    } else {
-      return false;
     }
   }
 }

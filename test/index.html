@@ -200,7 +200,7 @@
         .stores([
           {
             name: "todos",
-            options: { keyPath: null, autoIncrement: true },
+            options: { keyPath: "id", autoIncrement: true },
             indexes: [
               { name: "todo" },
               { name: "userId" },
@@ -211,17 +211,15 @@
         .open();
 
       await dummy.transaction(async ({ todos }) => {
-        // for (const iterator of todoList) {
-        //   await todos.add({ value: iterator });
-        // }
-
-        const result = await todos.get({
-          query: { start: 20 },
-          direction: "prev",
-          where: (value) => (!value.completed ? value : null),
-        });
-
-        console.log(result);
+        for (const iterator of todoList) {
+          await todos.add({ value: iterator });
+        }
+        // const result = await todos.get({
+        //   query: { start: 0 },
+        //   direction: "prev",
+        //   where: (value) => (value.completed ? value : null),
+        // });
+        // console.log(result);
       });
     </script>
   </body>
