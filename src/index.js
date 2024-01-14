@@ -229,6 +229,10 @@ class IDBee {
 
         callbacks.onupgradeneeded?.(event);
       };
+
+      request.onblocked = (event) => {
+        callbacks.onblocked?.(event);
+      };
     });
   }
 
