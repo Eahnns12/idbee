@@ -40,9 +40,9 @@ npm install IDBee
 
 Specify the name of your database using the name method.
 
-| Arguments | Type     | Default |     |
-| --------- | -------- | ------- | --- |
-| `name`    | `String` |         |     |
+| Arguments | Type     | Default | Required |
+| --------- | -------- | ------- | -------- |
+| `name`    | `String` |         |          |
 
 ```javascript
 mydb.name("mydb");
@@ -52,9 +52,9 @@ mydb.name("mydb");
 
 Set the version of your database. IndexedDB uses versions to manage schema changes.
 
-| Arguments | Type     | Default |     |
-| --------- | -------- | ------- | --- |
-| `version` | `Number` | `1`     |     |
+| Arguments | Type     | Default | Required |
+| --------- | -------- | ------- | -------- |
+| `version` | `Number` | `1`     |          |
 
 ```javascript
 mydb.version(1);
@@ -64,17 +64,17 @@ mydb.version(1);
 
 Configure object stores with their respective key paths, auto-increment settings, and any indexes.
 
-| Arguments                        | Type       | Default |     |
-| -------------------------------- | ---------- | ------- | --- |
-| `stores`                         | `Object[]` | `[]`    |     |
-| `stores[].name`                  | `String`   |         |     |
-| `stores[].options`               | `Object`   |         |     |
-| `stores[].options.keyPath`       | `String`   | `id`    |     |
-| `stores[].options.autoIncrement` | `Boolean`  | `true`  |     |
-| `stores[].indexes`               | `Object[]` |         |     |
-| `stores[].indexes[].name`        | `String`   |         |     |
-| `stores[].indexes[].unique`      | `Boolean`  | `false` |     |
-| `stores[].indexes[].multiEntry`  | `Boolean`  | `false` |     |
+| Arguments                        | Type       | Default | Required |
+| -------------------------------- | ---------- | ------- | -------- |
+| `stores`                         | `Object[]` | `[]`    |          |
+| `stores[].name`                  | `String`   |         |          |
+| `stores[].options`               | `Object`   |         |          |
+| `stores[].options.keyPath`       | `String`   | `id`    |          |
+| `stores[].options.autoIncrement` | `Boolean`  | `true`  |          |
+| `stores[].indexes`               | `Object[]` |         |          |
+| `stores[].indexes[].name`        | `String`   |         |          |
+| `stores[].indexes[].unique`      | `Boolean`  | `false` |          |
+| `stores[].indexes[].multiEntry`  | `Boolean`  | `false` |          |
 
 ```javascript
 mydb.stores([
@@ -99,13 +99,13 @@ mydb.stores([
 
 Establish a connection to your IndexedDB and handle various database events with custom callbacks.
 
-| Arguments                   | Type       | Default |     |
-| --------------------------- | ---------- | ------- | --- |
-| `callbacks`                 | `Object`   | `{}`    |     |
-| `callbacks.onsuccess`       | `Function` |         |     |
-| `callbacks.onerror`         | `Function` |         |     |
-| `callbacks.onupgradeneeded` | `Function` |         |     |
-| `callbacks.onblocked`       | `Function` |         |     |
+| Arguments                   | Type       | Default | Required |
+| --------------------------- | ---------- | ------- | -------- |
+| `callbacks`                 | `Object`   | `{}`    |          |
+| `callbacks.onsuccess`       | `Function` |         |          |
+| `callbacks.onerror`         | `Function` |         |          |
+| `callbacks.onupgradeneeded` | `Function` |         |          |
+| `callbacks.onblocked`       | `Function` |         |          |
 
 ```javascript
 await mydb.open({
@@ -128,10 +128,10 @@ await mydb.open({
 
 Transactions allow you to execute a series of database operations as a single unit.
 
-| Arguments  | Type       | Default |            |
-| ---------- | ---------- | ------- | ---------- |
-| `stores`   | `String[]` |         |            |
-| `callback` | `Function` |         | `required` |
+| Arguments  | Type       | Default | Required |
+| ---------- | ---------- | ------- | -------- |
+| `stores`   | `String[]` |         |          |
+| `callback` | `Function` |         | `true`   |
 
 ```javascript
 const result = await mydb.transaction();
@@ -149,11 +149,11 @@ await mydb.transaction(["users"], async (stores) => {
 
 Transactions provide a straightforward way to add data to your object stores.
 
-| Arguments | Type     | Default |            |
-| --------- | -------- | ------- | ---------- |
-| `options` | `Object` | `{}`    |            |
-| `key`     | `Any`    |         |            |
-| `value`   | `Object` |         | `required` |
+| Arguments | Type     | Default | Required |
+| --------- | -------- | ------- | -------- |
+| `options` | `Object` | `{}`    |          |
+| `key`     | `Any`    |         |          |
+| `value`   | `Object` |         | `true`   |
 
 ```javascript
 await mydb.transaction(async ({ users, todos }) => {
@@ -207,11 +207,11 @@ Transactions provide a straightforward way to add data to your object stores.
 
 ### Get One
 
-| Arguments       | Type     | Default |            |
-| --------------- | -------- | ------- | ---------- |
-| `options`       | `Object` | `{}`    |            |
-| `options.key`   | `Any`    |         | `required` |
-| `options.index` | `Any`    |         |            |
+| Arguments       | Type     | Default | Required |
+| --------------- | -------- | ------- | -------- |
+| `options`       | `Object` | `{}`    |          |
+| `options.key`   | `Any`    |         | `true`   |
+| `options.index` | `Any`    |         |          |
 
 ```javascript
 await mydb.transaction(["todos"], async ({ todos }) => {
@@ -225,15 +225,15 @@ await mydb.transaction(["todos"], async ({ todos }) => {
 
 ### Get All
 
-| Arguments             | Type     | Default |     |
-| --------------------- | -------- | ------- | --- |
-| `options`             | `Object` | `{}`    |     |
-| `options.index`       | `Any`    |         |     |
-| `options.query`       | `Object` |         |     |
-| `options.query.start` | `Any`    |         |     |
-| `options.query.end`   | `Any`    |         |     |
-| `options.query.only`  | `Any`    |         |     |
-| `options.count`       | `Number` |         |     |
+| Arguments             | Type     | Default | Required |
+| --------------------- | -------- | ------- | -------- |
+| `options`             | `Object` | `{}`    |          |
+| `options.index`       | `Any`    |         |          |
+| `options.query`       | `Object` |         |          |
+| `options.query.start` | `Any`    |         |          |
+| `options.query.end`   | `Any`    |         |          |
+| `options.query.only`  | `Any`    |         |          |
+| `options.count`       | `Number` |         |          |
 
 ```javascript
 await mydb.transaction(["todos"], async ({ todos }) => {
@@ -268,16 +268,16 @@ await mydb.transaction(["todos"], async ({ todos }) => {
 
 ### Cursor
 
-| Arguments             | Type       | Default |            |
-| --------------------- | ---------- | ------- | ---------- |
-| `options`             | `Object`   | `{}`    |            |
-| `options.where`       | `Function` |         | `required` |
-| `options.index`       | `Any`      |         |            |
-| `options.query`       | `Object`   |         |            |
-| `options.query.start` | `Any`      |         |            |
-| `options.query.end`   | `Any`      |         |            |
-| `options.query.only`  | `Any`      |         |            |
-| `options.direction`   | `String`   |         |            |
+| Arguments             | Type       | Default | Required |
+| --------------------- | ---------- | ------- | -------- |
+| `options`             | `Object`   | `{}`    |          |
+| `options.where`       | `Function` |         | `true`   |
+| `options.index`       | `Any`      |         |          |
+| `options.query`       | `Object`   |         |          |
+| `options.query.start` | `Any`      |         |          |
+| `options.query.end`   | `Any`      |         |          |
+| `options.query.only`  | `Any`      |         |          |
+| `options.direction`   | `String`   |         |          |
 
 ```javascript
 await mydb.transaction(["todos"], async ({ todos }) => {
