@@ -40,9 +40,9 @@ npm install IDBee
 
 Specify the name of your database using the name method.
 
-| Arguments | Type     | Default | Required |
-| --------- | -------- | ------- | -------- |
-| `name`    | `String` |         |          |
+| Arguments | Type     | Default | Required | Description |
+| --------- | -------- | ------- | -------- | ----------- |
+| `name`    | `String` |         |          |             |
 
 ```javascript
 mydb.name("mydb");
@@ -52,9 +52,9 @@ mydb.name("mydb");
 
 Set the version of your database. IndexedDB uses versions to manage schema changes.
 
-| Arguments | Type     | Default | Required |
-| --------- | -------- | ------- | -------- |
-| `version` | `Number` | `1`     |          |
+| Arguments | Type     | Default | Required | Description |
+| --------- | -------- | ------- | -------- | ----------- |
+| `version` | `Number` | `1`     |          |             |
 
 ```javascript
 mydb.version(1);
@@ -64,17 +64,17 @@ mydb.version(1);
 
 Configure object stores with their respective key paths, auto-increment settings, and any indexes.
 
-| Arguments                        | Type       | Default | Required |
-| -------------------------------- | ---------- | ------- | -------- |
-| `stores`                         | `Object[]` | `[]`    |          |
-| `stores[].name`                  | `String`   |         |          |
-| `stores[].options`               | `Object`   |         |          |
-| `stores[].options.keyPath`       | `String`   | `id`    |          |
-| `stores[].options.autoIncrement` | `Boolean`  | `true`  |          |
-| `stores[].indexes`               | `Object[]` |         |          |
-| `stores[].indexes[].name`        | `String`   |         |          |
-| `stores[].indexes[].unique`      | `Boolean`  | `false` |          |
-| `stores[].indexes[].multiEntry`  | `Boolean`  | `false` |          |
+| Arguments                        | Type       | Default | Required | Description |
+| -------------------------------- | ---------- | ------- | -------- | ----------- |
+| `stores`                         | `Object[]` | `[]`    |          |             |
+| `stores[].name`                  | `String`   |         |          |             |
+| `stores[].options`               | `Object`   |         |          |             |
+| `stores[].options.keyPath`       | `String`   | `id`    |          |             |
+| `stores[].options.autoIncrement` | `Boolean`  | `true`  |          |             |
+| `stores[].indexes`               | `Object[]` |         |          |             |
+| `stores[].indexes[].name`        | `String`   |         |          |             |
+| `stores[].indexes[].unique`      | `Boolean`  | `false` |          |             |
+| `stores[].indexes[].multiEntry`  | `Boolean`  | `false` |          |             |
 
 ```javascript
 mydb.stores([
@@ -99,13 +99,13 @@ mydb.stores([
 
 Establish a connection to your IndexedDB and handle various database events with custom callbacks.
 
-| Arguments                   | Type       | Default | Required |
-| --------------------------- | ---------- | ------- | -------- |
-| `callbacks`                 | `Object`   | `{}`    |          |
-| `callbacks.onsuccess`       | `Function` |         |          |
-| `callbacks.onerror`         | `Function` |         |          |
-| `callbacks.onupgradeneeded` | `Function` |         |          |
-| `callbacks.onblocked`       | `Function` |         |          |
+| Arguments                   | Type       | Default | Required | Description |
+| --------------------------- | ---------- | ------- | -------- | ----------- |
+| `callbacks`                 | `Object`   | `{}`    |          |             |
+| `callbacks.onsuccess`       | `Function` |         |          |             |
+| `callbacks.onerror`         | `Function` |         |          |             |
+| `callbacks.onupgradeneeded` | `Function` |         |          |             |
+| `callbacks.onblocked`       | `Function` |         |          |             |
 
 ```javascript
 await mydb.open({
@@ -128,10 +128,10 @@ await mydb.open({
 
 Transactions allow you to execute a series of database operations as a single unit.
 
-| Arguments  | Type       | Default | Required |
-| ---------- | ---------- | ------- | -------- |
-| `stores`   | `String[]` |         |          |
-| `callback` | `Function` |         | `true`   |
+| Arguments  | Type       | Default | Required | Description |
+| ---------- | ---------- | ------- | -------- | ----------- |
+| `stores`   | `String[]` |         |          |             |
+| `callback` | `Function` |         | `true`   |             |
 
 ```javascript
 const result = await mydb.transaction();
@@ -149,18 +149,18 @@ await mydb.transaction(["users"], async (stores) => {
 
 Transactions provide a straightforward way to add data to your object stores.
 
-| Arguments | Type     | Default | Required |
-| --------- | -------- | ------- | -------- |
-| `options` | `Object` | `{}`    |          |
-| `key`     | `Any`    |         |          |
-| `value`   | `Object` |         | `true`   |
+| Arguments | Type     | Default | Required | Description |
+| --------- | -------- | ------- | -------- | ----------- |
+| `options` | `Object` | `{}`    |          |             |
+| `key`     | `Any`    |         |          |             |
+| `value`   | `Object` |         | `true`   |             |
 
 ```javascript
 await mydb.transaction(async ({ users, todos }) => {
   const userId = await users.add({
     value: {
-      firstName: "Terry",
-      lastName: "Medhurst",
+      firstName: "John",
+      lastName: "Doe",
       age: 50,
     },
   });
@@ -188,9 +188,11 @@ await mydb.transaction(async ({ users, todos }) => {
 });
 ```
 
-## Retrieving Data
+## Demo Data
 
-Transactions provide a straightforward way to add data to your object stores.
+| #   | Key ("id") | Value                                                    |
+| --- | ---------- | -------------------------------------------------------- |
+| 0   | `1`        | `{ id: 1, firstName: "John", lastName: "Doe", age: 50 }` |
 
 | #   | Key  | Value                                                                                  |
 | --- | ---- | -------------------------------------------------------------------------------------- |
@@ -205,13 +207,17 @@ Transactions provide a straightforward way to add data to your object stores.
 | 8   | `9`  | `{ userId: 9, todo: "Practice meditation", tags: ["mindfulness", "health"] }`          |
 | 9   | `10` | `{ userId: 4, todo: "Organize a meetup", tags: ["social", "networking"] }`             |
 
+## Retrieving Data
+
+Transactions provide a straightforward way to add data to your object stores.
+
 ### Get One
 
-| Arguments       | Type     | Default | Required |
-| --------------- | -------- | ------- | -------- |
-| `options`       | `Object` | `{}`    |          |
-| `options.key`   | `Any`    |         | `true`   |
-| `options.index` | `Any`    |         |          |
+| Arguments       | Type     | Default | Required | Description |
+| --------------- | -------- | ------- | -------- | ----------- |
+| `options`       | `Object` | `{}`    |          |             |
+| `options.key`   | `Any`    |         | `true`   |             |
+| `options.index` | `Any`    |         |          |             |
 
 ```javascript
 await mydb.transaction(["todos"], async ({ todos }) => {
@@ -225,15 +231,15 @@ await mydb.transaction(["todos"], async ({ todos }) => {
 
 ### Get All
 
-| Arguments             | Type     | Default | Required |
-| --------------------- | -------- | ------- | -------- |
-| `options`             | `Object` | `{}`    |          |
-| `options.index`       | `Any`    |         |          |
-| `options.query`       | `Object` |         |          |
-| `options.query.start` | `Any`    |         |          |
-| `options.query.end`   | `Any`    |         |          |
-| `options.query.only`  | `Any`    |         |          |
-| `options.count`       | `Number` |         |          |
+| Arguments             | Type     | Default | Required | Description |
+| --------------------- | -------- | ------- | -------- | ----------- |
+| `options`             | `Object` | `{}`    |          |             |
+| `options.index`       | `Any`    |         |          |             |
+| `options.query`       | `Object` |         |          |             |
+| `options.query.start` | `Any`    |         |          |             |
+| `options.query.end`   | `Any`    |         |          |             |
+| `options.query.only`  | `Any`    |         |          |             |
+| `options.count`       | `Number` |         |          |             |
 
 ```javascript
 await mydb.transaction(["todos"], async ({ todos }) => {
@@ -268,16 +274,16 @@ await mydb.transaction(["todos"], async ({ todos }) => {
 
 ### Cursor
 
-| Arguments             | Type       | Default | Required |
-| --------------------- | ---------- | ------- | -------- |
-| `options`             | `Object`   | `{}`    |          |
-| `options.where`       | `Function` |         | `true`   |
-| `options.index`       | `Any`      |         |          |
-| `options.query`       | `Object`   |         |          |
-| `options.query.start` | `Any`      |         |          |
-| `options.query.end`   | `Any`      |         |          |
-| `options.query.only`  | `Any`      |         |          |
-| `options.direction`   | `String`   |         |          |
+| Arguments             | Type       | Default | Required | Description |
+| --------------------- | ---------- | ------- | -------- | ----------- |
+| `options`             | `Object`   | `{}`    |          |             |
+| `options.where`       | `Function` |         | `true`   |             |
+| `options.index`       | `Any`      |         |          |             |
+| `options.query`       | `Object`   |         |          |             |
+| `options.query.start` | `Any`      |         |          |             |
+| `options.query.end`   | `Any`      |         |          |             |
+| `options.query.only`  | `Any`      |         |          |             |
+| `options.direction`   | `String`   |         |          |             |
 
 ```javascript
 await mydb.transaction(["todos"], async ({ todos }) => {
@@ -303,5 +309,134 @@ await mydb.transaction(["todos"], async ({ todos }) => {
   // Outputs: [
   //   { userId: 5, todo: "Cook a new recipe", tags: ["cooking", "food"] }
   // ]
+});
+```
+
+## Update Data
+
+### Update and Create
+
+| Arguments       | Type     | Default | Required | Description                                      |
+| --------------- | -------- | ------- | -------- | ------------------------------------------------ |
+| `options`       | `Object` | `{}`    |          |                                                  |
+| `options.key`   | `Any`    |         |          | The primary key of the record you want to update |
+| `options.value` | `Object` |         | `true`   |                                                  |
+
+```javascript
+await mydb.transaction(async ({ users, todos }) => {
+  await users.put({
+    value: {
+      id: 1,
+      firstName: "Jane",
+      lastName: "Doe",
+      age: 50,
+    },
+  });
+  // Outputs: 1
+
+  await todos.put({
+    key: 2,
+    value: {
+      userId: 1,
+      todo: "Learn Javascript",
+      tags: ["education", "self-improvement"],
+    },
+  });
+  // Outputs: 2
+});
+```
+
+### Cursor
+
+| Arguments             | Type       | Default | Required | Description |
+| --------------------- | ---------- | ------- | -------- | ----------- |
+| `options`             | `Object`   | `{}`    |          |             |
+| `options.where`       | `Function` |         | `true`   |             |
+| `options.index`       | `Any`      |         |          |             |
+| `options.query`       | `Object`   |         |          |             |
+| `options.query.start` | `Any`      |         |          |             |
+| `options.query.end`   | `Any`      |         |          |             |
+| `options.query.only`  | `Any`      |         |          |             |
+| `options.direction`   | `String`   |         |          |             |
+
+```javascript
+await mydb.transaction(["todos"], async ({ todos }) => {
+  await todos.put({
+    where: (value) => {
+      if (value.userId === 1) {
+        value.completed = true;
+
+        return value;
+      }
+    },
+  });
+  // Outputs: [1, 2]
+});
+```
+
+## Delete Data
+
+### Delete One
+
+| Arguments       | Type     | Default | Required | Description |
+| --------------- | -------- | ------- | -------- | ----------- |
+| `options`       | `Object` | `{}`    |          |             |
+| `options.key`   | `Any`    |         | `true`   |             |
+| `options.index` | `Any`    |         |          |             |
+
+```javascript
+await mydb.transaction(async ({ todos }) => {
+  await todos.delete({
+    key: 4,
+  });
+  // { userId: 3, todo: "Write a journal entry", tags: ["reflection", "writing"] }
+
+  await todos.delete({
+    index: "UserId",
+    key: 4,
+  });
+  // { userId: 4, todo: "Organize a meetup", tags: ["social", "networking"] }
+});
+```
+
+### Delete All
+
+| Arguments       | Type     | Default | Required | Description |
+| --------------- | -------- | ------- | -------- | ----------- |
+| `options`       | `Object` | `{}`    |          |             |
+| `options.key`   | `Any`    |         | `true`   |             |
+| `options.index` | `Any`    |         |          |             |
+
+```javascript
+await mydb.transaction(async ({ users }) => {
+  await users.delete();
+});
+```
+
+### Cursor
+
+| Arguments             | Type       | Default | Required | Description |
+| --------------------- | ---------- | ------- | -------- | ----------- |
+| `options`             | `Object`   | `{}`    |          |             |
+| `options.where`       | `Function` |         | `true`   |             |
+| `options.index`       | `Any`      |         |          |             |
+| `options.query`       | `Object`   |         |          |             |
+| `options.query.start` | `Any`      |         |          |             |
+| `options.query.end`   | `Any`      |         |          |             |
+| `options.query.only`  | `Any`      |         |          |             |
+| `options.direction`   | `String`   |         |          |             |
+
+```javascript
+await mydb.transaction(["todos"], async ({ todos }) => {
+  await todos.delete({
+    where: (value) => {
+      if (value.userId === 5) {
+        return true;
+      }
+    },
+  });
+  // { userId: 5, todo: "Cook a new recipe", tags: ["cooking", "food"] }
+  // { userId: 5, todo: "Paint a landscape", tags: ["creativity", "art"] }
+  // { userId: 5, todo: "Start a blog", tags: ["writing", "technology"] }
 });
 ```
