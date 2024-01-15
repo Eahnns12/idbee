@@ -11,6 +11,9 @@
     "type": "git",
     "url": "git+https://github.com/Eahnns12/idbee.git"
   },
+  "keywords": [
+    "indexeddb"
+  ],
   "author": "Eahnns12",
   "license": "ISC",
   "bugs": {
