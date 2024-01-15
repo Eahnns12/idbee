@@ -40,9 +40,9 @@ npm install IDBee
 
 Specify the name of your database using the name method.
 
-| Arguments | Type     | Default |
-| --------- | -------- | ------- |
-| `name`    | `String` |         |
+| Arguments | Type     | Default |     |
+| --------- | -------- | ------- | --- |
+| `name`    | `String` |         |     |
 
 ```javascript
 mydb.name("mydb");
@@ -52,9 +52,9 @@ mydb.name("mydb");
 
 Set the version of your database. IndexedDB uses versions to manage schema changes.
 
-| Arguments | Type     | Default |
-| --------- | -------- | ------- |
-| `version` | `Number` | `1`     |
+| Arguments | Type     | Default |     |
+| --------- | -------- | ------- | --- |
+| `version` | `Number` | `1`     |     |
 
 ```javascript
 mydb.version(1);
@@ -64,17 +64,17 @@ mydb.version(1);
 
 Configure object stores with their respective key paths, auto-increment settings, and any indexes.
 
-| Arguments                        | Type       | Default |
-| -------------------------------- | ---------- | ------- |
-| `stores`                         | `Object[]` | `[]`    |
-| `stores[].name`                  | `String`   |         |
-| `stores[].options`               | `Object`   |         |
-| `stores[].options.keyPath`       | `String`   | `id`    |
-| `stores[].options.autoIncrement` | `Boolean`  | `true`  |
-| `stores[].indexes`               | `Object[]` |         |
-| `stores[].indexes[].name`        | `String`   |         |
-| `stores[].indexes[].unique`      | `Boolean`  | `false` |
-| `stores[].indexes[].multiEntry`  | `Boolean`  | `false` |
+| Arguments                        | Type       | Default |     |
+| -------------------------------- | ---------- | ------- | --- |
+| `stores`                         | `Object[]` | `[]`    |     |
+| `stores[].name`                  | `String`   |         |     |
+| `stores[].options`               | `Object`   |         |     |
+| `stores[].options.keyPath`       | `String`   | `id`    |     |
+| `stores[].options.autoIncrement` | `Boolean`  | `true`  |     |
+| `stores[].indexes`               | `Object[]` |         |     |
+| `stores[].indexes[].name`        | `String`   |         |     |
+| `stores[].indexes[].unique`      | `Boolean`  | `false` |     |
+| `stores[].indexes[].multiEntry`  | `Boolean`  | `false` |     |
 
 ```javascript
 mydb.stores([
@@ -99,13 +99,13 @@ mydb.stores([
 
 Establish a connection to your IndexedDB and handle various database events with custom callbacks.
 
-| Arguments                   | Type       | Default |
-| --------------------------- | ---------- | ------- |
-| `callbacks`                 | `Object`   |         |
-| `callbacks.onsuccess`       | `Function` |         |
-| `callbacks.onerror`         | `Function` |         |
-| `callbacks.onupgradeneeded` | `Function` |         |
-| `callbacks.onblocked`       | `Function` |         |
+| Arguments                   | Type       | Default |     |
+| --------------------------- | ---------- | ------- | --- |
+| `callbacks`                 | `Object`   | `{}`    |     |
+| `callbacks.onsuccess`       | `Function` |         |     |
+| `callbacks.onerror`         | `Function` |         |     |
+| `callbacks.onupgradeneeded` | `Function` |         |     |
+| `callbacks.onblocked`       | `Function` |         |     |
 
 ```javascript
 await mydb.open({
@@ -128,19 +128,14 @@ await mydb.open({
 
 Transactions allow you to execute a series of database operations as a single unit.
 
-| Arguments  | Type       | Default |
-| ---------- | ---------- | ------- |
-| `stores`   | `String[]` |         |
-| `callback` | `Function` |         |
+| Arguments  | Type       | Default |            |
+| ---------- | ---------- | ------- | ---------- |
+| `stores`   | `String[]` |         |            |
+| `callback` | `Function` |         | `required` |
 
 ```javascript
 const result = await mydb.transaction();
 // Outputs: ["users", "todos"]
-
-await mydb.transaction(async (stores) => {
-  const { users, todos } = stores; // Default provide all stores
-});
-// Outputs: undefined
 
 await mydb.transaction(["users"], async (stores) => {
   const { users } = stores;
@@ -154,10 +149,11 @@ await mydb.transaction(["users"], async (stores) => {
 
 Transactions provide a straightforward way to add data to your object stores.
 
-| Arguments | Type     | Default |
-| --------- | -------- | ------- |
-| `key`     | `Any`    |         |
-| `value`   | `Object` |         |
+| Arguments | Type     | Default |            |
+| --------- | -------- | ------- | ---------- |
+| `options` | `Object` | `{}`    |            |
+| `key`     | `Any`    |         |            |
+| `value`   | `Object` |         | `required` |
 
 ```javascript
 await mydb.transaction(async ({ users, todos }) => {
@@ -196,56 +192,51 @@ await mydb.transaction(async ({ users, todos }) => {
 
 Transactions provide a straightforward way to add data to your object stores.
 
-| Arguments           | Type       | Default |
-| ------------------- | ---------- | ------- |
-| `options`           | `Object`   |         |
-| `options.key`       | `Any`      |         |
-| `options.index`     | `Any`      |         |
-| `options.where`     | `Function` |         |
-| `options.query`     | `Object`   |         |
-| `options.count`     | `Number`   |         |
-| `options.direction` | `String`   |         |
+| #   | Key  | Value                                                                                  |
+| --- | ---- | -------------------------------------------------------------------------------------- |
+| 0   | `1`  | `{ userId: 1, todo: "Go for a run", tags: ["health", "fitness"] }`                     |
+| 1   | `2`  | `{ userId: 1, todo: "Learn a new language", tags: ["education", "self-improvement"] }` |
+| 2   | `3`  | `{ userId: 5, todo: "Cook a new recipe", tags: ["cooking", "food"] }`                  |
+| 3   | `4`  | `{ userId: 3, todo: "Write a journal entry", tags: ["reflection", "writing"] }`        |
+| 4   | `5`  | `{ userId: 5, todo: "Paint a landscape", tags: ["creativity", "art"] }`                |
+| 5   | `6`  | `{ userId: 2, todo: "Plan a weekend trip", tags: ["travel", "adventure"] }`            |
+| 6   | `7`  | `{ userId: 8, todo: "Visit a museum", tags: ["culture", "learning"] }`                 |
+| 7   | `8`  | `{ userId: 5, todo: "Start a blog", tags: ["writing", "technology"] }`                 |
+| 8   | `9`  | `{ userId: 9, todo: "Practice meditation", tags: ["mindfulness", "health"] }`          |
+| 9   | `10` | `{ userId: 4, todo: "Organize a meetup", tags: ["social", "networking"] }`             |
+
+### Get One
+
+| Arguments       | Type     | Default |            |
+| --------------- | -------- | ------- | ---------- |
+| `options`       | `Object` | `{}`    |            |
+| `options.key`   | `Any`    |         | `required` |
+| `options.index` | `Any`    |         |            |
 
 ```javascript
-/**
- * key: 1
- * { userId: 1, todo: "Go for a run", tags: ["health", "fitness"] }
- *
- * key: 2
- * { userId: 1, todo: "Learn a new language", tags: ["education", "self-improvement"] }
- *
- * key: 3
- * { userId: 5, todo: "Cook a new recipe", tags: ["cooking", "food"] }
- *
- * key: 4
- * { userId: 3, todo: "Write a journal entry", tags: ["reflection", "writing"] }
- *
- * key: 5
- * { userId: 5, todo: "Paint a landscape", tags: ["creativity", "art"] }
- *
- * key: 6
- * { userId: 2, todo: "Plan a weekend trip", tags: ["travel", "adventure"] }
- *
- * key: 7
- * { userId: 8, todo: "Visit a museum", tags: ["culture", "learning"] }
- *
- * key: 8
- * { userId: 5, todo: "Start a blog", tags: ["writing", "technology"] }
- *
- * key: 9
- * { userId: 9, todo: "Practice meditation", tags: ["mindfulness", "health"] }
- *
- * key: 10
- * { userId: 4, todo: "Organize a meetup", tags: ["social", "networking"] }
- */
-
 await mydb.transaction(["todos"], async ({ todos }) => {
   await todos.get({ key: 1 });
   // Outputs: { userId: 1, todo: "Go for a run", tags: ["health", "fitness"] }
 
   await todos.get({ index: "userId", key: 5 });
   // Outputs: { userId: 5, todo: "Cook a new recipe", tags: ["cooking", "food"] }
+});
+```
 
+### Get All
+
+| Arguments             | Type     | Default |     |
+| --------------------- | -------- | ------- | --- |
+| `options`             | `Object` | `{}`    |     |
+| `options.index`       | `Any`    |         |     |
+| `options.query`       | `Object` |         |     |
+| `options.query.start` | `Any`    |         |     |
+| `options.query.end`   | `Any`    |         |     |
+| `options.query.only`  | `Any`    |         |     |
+| `options.count`       | `Number` |         |     |
+
+```javascript
+await mydb.transaction(["todos"], async ({ todos }) => {
   await todos.get();
   // Outputs: [{ 1 ... 10 }]
 
@@ -272,11 +263,28 @@ await mydb.transaction(["todos"], async ({ todos }) => {
   //   { userId: 5, todo: "Cook a new recipe", tags: ["cooking", "food"] }
   //   { userId: 5, todo: "Paint a landscape", tags: ["creativity", "art"] }
   // ]
+});
+```
 
+### Cursor
+
+| Arguments             | Type       | Default |            |
+| --------------------- | ---------- | ------- | ---------- |
+| `options`             | `Object`   | `{}`    |            |
+| `options.where`       | `Function` |         | `required` |
+| `options.index`       | `Any`      |         |            |
+| `options.query`       | `Object`   |         |            |
+| `options.query.start` | `Any`      |         |            |
+| `options.query.end`   | `Any`      |         |            |
+| `options.query.only`  | `Any`      |         |            |
+| `options.direction`   | `String`   |         |            |
+
+```javascript
+await mydb.transaction(["todos"], async ({ todos }) => {
   await todos.get({
     where: (value) => {
       if (value.userId === 5) {
-        return value; // you must return if the value is ideal
+        return value;
       }
     },
     direction: "prev",
