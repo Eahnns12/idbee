@@ -165,6 +165,7 @@ class IDBee {
 
       request.onupgradeneeded = (event) => {
         const db = event.target.result;
+        this.db = db;
         const existingStores = Array.from(db.objectStoreNames);
         const idealStores = this.#dbStores.map(({ name }) => name);
 
@@ -215,6 +216,10 @@ class IDBee {
           objectStore.transaction.onabort = (event) =>
             reject(event.target.error);
 
+          objectStore.transaction.oncomplete = (event) => {
+            callbacks.onupgradeneeded?.(event);
+          };
+
           // Delete all remaining index
           Array.from(objectStore.indexNames).forEach((indexName) => {
             objectStore.deleteIndex(indexName);
@@ -227,8 +232,6 @@ class IDBee {
             }
           );
         });
-
-        callbacks.onupgradeneeded?.(event);
       };
 
       request.onblocked = (event) => {

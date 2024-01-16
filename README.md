@@ -147,6 +147,7 @@ mydb.version(2).stores([
     options: { keyPath: null, autoIncrement: true },
     indexes: [{ name: "userId" }, { name: "tags", multiEntry: true }],
   },
+  { name: "products" },
 ]);
 
 mydb.version(3).stores([
@@ -168,6 +169,10 @@ mydb.version(3).stores([
 await mydb.open({
   onupgradeneeded: (event) => {
     // Custom logic for handling a database upgrade.
+    // const db = event.target.db;
+    // const transaction = db.transaction("users", "readwrite");
+    // const users = transaction.objectStore("users");
+    // users.add({ hello: "World" });
   },
 });
 ```
