@@ -216,10 +216,6 @@ class IDBee {
           objectStore.transaction.onabort = (event) =>
             reject(event.target.error);
 
-          objectStore.transaction.oncomplete = (event) => {
-            callbacks.onupgradeneeded?.(event);
-          };
-
           // Delete all remaining index
           Array.from(objectStore.indexNames).forEach((indexName) => {
             objectStore.deleteIndex(indexName);
@@ -232,6 +228,8 @@ class IDBee {
             }
           );
         });
+
+        callbacks.onupgradeneeded?.(event);
       };
 
       request.onblocked = (event) => {

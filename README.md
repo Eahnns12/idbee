@@ -136,6 +136,8 @@ await mydb.open({
 
 ## Versioning
 
+Update the version and modify the object stores and indexes:
+
 ```javascript
 mydb.version(2).stores([
   {
@@ -165,10 +167,11 @@ mydb.version(3).stores([
 ]);
 ```
 
+Custom logic for handling a database upgrade:
+
 ```javascript
 await mydb.open({
   onupgradeneeded: (event) => {
-    // Custom logic for handling a database upgrade.
     // const db = event.target.db;
     // const transaction = db.transaction("users", "readwrite");
     // const users = transaction.objectStore("users");
