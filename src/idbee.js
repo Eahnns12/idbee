@@ -154,6 +154,7 @@ class IDBee {
       request.onsuccess = (event) => {
         callbacks.onsuccess?.(event);
         this.db = event.target.result;
+        this.#isOpened = true;
         resolve(this);
       };
 
@@ -244,6 +245,7 @@ class IDBee {
       throw new Error("The database connection is not open or already closed");
     }
 
+    this.#isOpened = false;
     this.db.close();
   }
 
