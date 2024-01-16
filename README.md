@@ -13,7 +13,7 @@ A lightweight, Promise-Based Wrapper designed to simplify the use of JavaScript'
 Create a new database instance, open a connection, and perform transactions:
 
 ```javascript
-import IDBee from "idbee";
+import { IDBee } from "idbee";
 
 // Create a new database instance
 const mydb = new IDBee();
