@@ -170,12 +170,18 @@ mydb.version(3).stores([
 Custom logic for handling a database upgrade:
 
 ```javascript
-await mydb.open({
+await mydb.version(4).open({
   onupgradeneeded: (event) => {
-    // const db = event.target.db;
-    // const transaction = db.transaction("users", "readwrite");
-    // const users = transaction.objectStore("users");
-    // users.add({ hello: "World" });
+    const db = event.target.result;
+    db.createObjectStore("todos", { keyPath: "id" });
+  },
+});
+
+await mydb.version(5).open({
+  onupgradeneeded: (event) => {
+    const db = event.target.result;
+    // db.createObjectStore("todos", { keyPath: "id" });
+    // This will remove the entire objectStore including its data.
   },
 });
 ```
