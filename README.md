@@ -41,7 +41,7 @@ await mydb.delete();
 To install IDBee, run the following command in your project directory:
 
 ```bash
-npm install IDBee
+npm install idbee
 ```
 
 ## Configuration
